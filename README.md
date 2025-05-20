@@ -49,6 +49,7 @@ Edita los siguientes archivos para personalizar el entorno:
 
 bash
 cd network
+chmod +x init.sh
 sudo ./init.sh
 
 Este script:
