@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - vpn_net
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Generar DNS API Token desde Cloudflare
+      # https://dash.cloudflare.com/profile/api-tokens
+      - CF_DNS_API_TOKEN=secret
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/traefik.yml:ro
+      - ./traefik/config.yml:/config.yml:ro
+      - ./traefik/data/acme.json:/acme.json
+    command:
+      - "--log.level=DEBUG"
+      - "--api.debug=true"
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
+      # Dominio base y wildcard
+      # Cambiar domain.com por dominio real
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=domain.com"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.domain.com"
+networks:
+  vpn_net:
+    external: true

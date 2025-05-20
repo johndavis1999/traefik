@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  web:
+    image: nginx:alpine
+    container_name: sub
+    restart: unless-stopped
+    networks:
+      - vpn_net
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    labels:
+      - "traefik.enable=true"
+      # Modificar sub.domain.com por subdominio real
+      # HTTP router (redirige a HTTPS)
+      - "traefik.http.routers.sub.entrypoints=http"
+      - "traefik.http.routers.sub.rule=Host(`sub.domain.com`)"
+      - "traefik.http.middlewares.sub-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.sub.middlewares=sub-https-redirect"
+
+      # HTTPS router
+      - "traefik.http.routers.sub-secure.entrypoints=https"
+      - "traefik.http.routers.sub-secure.rule=Host(`sub.domain.com`)"
+      - "traefik.http.routers.sub-secure.tls=true"
+      - "traefik.http.routers.sub-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.sub-secure.tls.domains[0].main=sub.domain.com"
+
+      # Puerto interno del contenedor (ajusta si es diferente)
+      - "traefik.http.services.sub.loadbalancer.server.port=80"
+
+networks:
+  vpn_net:
+    external: true
